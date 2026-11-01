@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>People</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- Tokens ---------- */
+    :root {
+      --ink: #1f1a2e;
+      --ink-soft: #6b6580;
+      --plum: #3b2a5c;
+      --mint: #1fb59a;
+      --mint-dark: #17917b;
+      --coral: #e5533d;
+      --coral-soft: #fdeceb;
+      --line: #e3dfec;
+      --canvas: #f3f1f8;
+      --paper: #ffffff;
+      --radius: 14px;
+      --font: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--canvas);
+      line-height: 1.5;
+    }
+
+    /* ---------- Page behind ---------- */
+    .page {
+      max-width: 980px;
+      margin: 48px auto;
+      padding: 28px;
+      background: var(--paper);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 40px rgba(59, 42, 92, .08);
+    }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .toolbar h1 { font-size: 1.4rem; margin: 0; }
+    .toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* search box */
+    .search {
+      height: 40px;
+      width: 220px;
+      padding: 0 14px;
+      font: 500 .92rem var(--font);
+      color: var(--ink);
+      background: var(--canvas);
+      border: 1.5px solid transparent;
+      border-radius: 10px;
+    }
+    .search:focus {
+      outline: none;
+      background: #fff;
+      border-color: var(--mint);
+      box-shadow: 0 0 0 4px rgba(31, 181, 154, .16);
+    }
+
+    .table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    .table th, .table td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+    .table th { color: var(--ink-soft); font-weight: 600; background: var(--canvas); }
+    .table th:first-child { border-radius: 8px 0 0 8px; }
+    .table th:last-child  { border-radius: 0 8px 8px 0; }
+    .col-check { width: 36px; }
+    .empty { text-align: center; color: var(--ink-soft); padding: 40px 0 16px; margin: 0; }
+    .empty[hidden] { display: none; }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      font: 600 .92rem var(--font);
+      padding: 10px 20px;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color .15s, transform .05s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn:focus-visible, .icon-btn:focus-visible { outline: 3px solid rgba(31, 181, 154, .45); outline-offset: 2px; }
+
+    .btn-primary { background: var(--mint); color: #fff; }
+    .btn-primary:hover { background: var(--mint-dark); }
+    .btn-ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+    .btn-ghost:hover { background: var(--canvas); }
+    .btn-danger-soft { background: var(--coral-soft); color: var(--coral); }
+    .btn-danger-soft:hover { background: #fbd9d5; }
+    .btn-small { padding: 6px 14px; font-size: .82rem; }
+
+    /* ---------- Modal ---------- */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      background: rgba(31, 26, 46, .55);
+      backdrop-filter: blur(3px);
+      opacity: 0; visibility: hidden;
+      transition: opacity .2s, visibility .2s;
+      z-index: 100;
+    }
+    .modal-backdrop.is-open { opacity: 1; visibility: visible; }
+
+    .modal {
+      width: 100%; max-width: 640px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      background: var(--paper);
+      border-radius: 18px;
+      border-top: 6px solid var(--plum);
+      box-shadow: 0 30px 80px rgba(31, 26, 46, .35);
+      transform: translateY(14px) scale(.98);
+      transition: transform .2s ease;
+    }
+    .modal-backdrop.is-open .modal { transform: none; }
+
+    .modal-head {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 24px 28px 8px;
+    }
+    .modal-head h2 { margin: 0; font-size: 1.25rem; color: var(--plum); }
+    .modal-head p { margin: 2px 0 0; font-size: .85rem; color: var(--ink-soft); }
+
+    .icon-btn {
+      display: grid; place-items: center;
+      width: 36px; height: 36px;
+      border: 0; border-radius: 50%;
+      background: transparent; color: var(--ink-soft);
+      cursor: pointer;
+      transition: background-color .15s, color .15s;
+    }
+    .icon-btn:hover { background: var(--canvas); color: var(--ink); }
+
+    .modal-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px 20px;
+      padding: 18px 28px 8px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .field label { font-size: .85rem; font-weight: 600; }
+
+    .field input,
+    .field select {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      font: 500 .95rem var(--font);
+      color: var(--ink);
+      background: var(--canvas);
+      border: 1.5px solid transparent;
+      border-radius: 10px;
+      transition: border-color .15s, background-color .15s, box-shadow .15s;
+    }
+    .field input::placeholder { color: #a9a3bb; }
+    .field input:hover, .field select:hover { border-color: var(--line); }
+    .field input:focus, .field select:focus {
+      outline: none;
+      background: #fff;
+      border-color: var(--mint);
+      box-shadow: 0 0 0 4px rgba(31, 181, 154, .16);
+    }
+
+    /* custom select arrow */
+    .select-wrap { position: relative; }
+    .select-wrap select { appearance: none; -webkit-appearance: none; padding-right: 40px; cursor: pointer; }
+    .select-wrap::after {
+      content: "";
+      position: absolute; right: 16px; top: 50%;
+      width: 8px; height: 8px;
+      border-right: 2px solid var(--ink-soft);
+      border-bottom: 2px solid var(--ink-soft);
+      transform: translateY(-70%) rotate(45deg);
+      pointer-events: none;
+    }
+
+    /* validation */
+    /* CHANGED: the select (Sex) also turns red now */
+    .field.has-error input,
+    .field.has-error select { border-color: var(--coral); background: var(--coral-soft); }
+    .error { font-size: .78rem; color: var(--coral); }
+    .error:empty { display: none; }
+
+    .modal-foot {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding: 20px 28px 24px;
+    }
+
+    @media (max-width: 560px) {
+      .modal-body { grid-template-columns: 1fr; }
+      .modal-foot .btn { flex: 1; }
+      .search { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .modal-backdrop, .modal, .btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Page behind the modal -->
+  <main class="page">
+    <div class="toolbar">
+      <h1>People</h1>
+      <div class="toolbar-actions">
+        <input type="search" class="search" id="search" placeholder="Search by name" aria-label="Search by name">
+        <button type="button" class="btn btn-primary" id="openModal">Add new</button>
+        <button type="button" class="btn btn-danger-soft" id="removeSelected">Remove</button>
+      </div>
+    </div>
+
+    <table class="table" id="peopleTable">
+      <thead>
+        <tr>
+          <th class="col-check"><input type="checkbox" id="checkAll" aria-label="Select all"></th>
+          <th>ID</th>
+          <th>Full name</th>
+          <th>Sex</th>
+          <th>Date of birth</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="empty" id="emptyState">No one here yet. Use “Add new” to create the first record.</p>
+    <p class="empty" id="noResult" hidden>No one matches your search.</p>
+  </main>
+
+  <!-- Modal (used for BOTH Add and Edit) -->
+  <div class="modal-backdrop" id="modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <header class="modal-head">
+        <div>
+          <h2 id="modalTitle">Add new person</h2>
+          <!-- CHANGED -->
+          <p>All fields are required.</p>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </header>
+
+      <form id="personForm" novalidate>
+        <div class="modal-body">
+          <div class="field">
+            <label for="fullName">Full name *</label>
+            <input type="text" id="fullName" name="fullName" autocomplete="name">
+            <span class="error"></span>
+          </div>
+
+          <!-- CHANGED: label has *, first option says "Select sex", and an error span was added -->
+          <div class="field">
+            <label for="sex">Sex *</label>
+            <div class="select-wrap">
+              <select id="sex" name="sex">
+                <option value="">Select sex</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+              </select>
+            </div>
+            <span class="error"></span>
+          </div>
+
+          <!-- CHANGED: label has * -->
+          <div class="field">
+            <label for="dob">Date of birth *</label>
+            <input type="date" id="dob" name="dob">
+            <span class="error"></span>
+          </div>
+
+          <div class="field">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" autocomplete="email">
+            <span class="error"></span>
+          </div>
+
+          <!-- CHANGED: label has *, placeholder has no spaces -->
+          <div class="field">
+            <label for="phone">Phone number *</label>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="numeric" placeholder="012345678">
+            <span class="error"></span>
+          </div>
+        </div>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitBtn">Create</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script>
+$(function () {
+
+  var nextId = 1;
+  var $editRow = null;   // the row being edited. null means we are adding a new person.
+
+  /*Helper functions*/
+
+  // -  →  /
+  function formatDate(value) {
+    if (!value) return '';
+    var parts = value.split('-');
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+
+  // is the email written correctly? (text@text.text, no spaces)
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  // phone must start with 0 and contain digits only
+  function isValidPhone(phone) {
+    return /^0[0-9]*$/.test(phone);
+  }
+
+  // does another person already use this email?
+  function emailExists(email) {
+    var found = false;
+    $('#peopleTable tbody tr').each(function () {
+      if ($editRow && this === $editRow[0]) return;   
+      var other = $(this).find('.c-email').text().toLowerCase();
+      if (other === email.toLowerCase()) found = true;
+    });
+    return found;
+  }
+
+  function showError(selector, message) {
+    $(selector).closest('.field').addClass('has-error').find('.error').text(message);
+  }
+
+  /*Open / close*/
+
+  $('#openModal').on('click', function () {
+    $editRow = null;
+    $('#modalTitle').text('Add new person');
+    $('#submitBtn').text('Create');
+    $('#modal').addClass('is-open');
+  });
+
+  $('[data-close]').on('click', function () {
+    closeModal();
+  });
+
+  function closeModal() {
+    $('#modal').removeClass('is-open');
+    $('#personForm')[0].reset();
+    $('.field').removeClass('has-error');
+    $('.error').text('');
+    $editRow = null;
+  }
+
+  /* Edit button on a row */
+  $('#peopleTable tbody').on('click', '.edit-btn', function () {
+    $editRow = $(this).closest('tr');
+
+    $('#fullName').val($editRow.find('.c-name').text());
+    $('#sex').val($editRow.find('.c-sex').text());
+    $('#dob').val($editRow.find('.c-dob').attr('data-value') || '');
+    $('#email').val($editRow.find('.c-email').text());
+    $('#phone').val($editRow.find('.c-phone').text());
+
+    $('#modalTitle').text('Edit person');
+    $('#submitBtn').text('Save changes');
+    $('#modal').addClass('is-open');
+  });
+
+  /* Create or save  */
+  $('#personForm').on('submit', function (e) {
+    e.preventDefault();
+
+    // CHANGED
+    var name  = $.trim($('#fullName').val());
+    var sex   = $('#sex').val();
+    var dob   = $('#dob').val();
+    var email = $.trim($('#email').val());
+    var phone = $.trim($('#phone').val());
+    var valid = true;
+
+    // clear old errors first
+    $('.field').removeClass('has-error');
+    $('.error').text('');
+
+    // name
+    if (name === '') {
+      showError('#fullName', 'Enter the full name.');
+      valid = false;
+    }
+
+    // NEW: sex is required
+    if (sex === '') {
+      showError('#sex', 'Select a sex.');
+      valid = false;
+    }
+
+    // NEW: date of birth is required
+    if (dob === '') {
+      showError('#dob', 'Select the date of birth.');
+      valid = false;
+    }
+
+    // email: empty, format, duplicate
+    if (email === '') {
+      showError('#email', 'Enter an email address.');
+      valid = false;
+    } else if (!isValidEmail(email)) {
+      showError('#email', 'Enter a valid email, like name@example.com.');
+      valid = false;
+    } else if (emailExists(email)) {
+      showError('#email', 'This email is already used by another person.');
+      valid = false;
+    }
+
+    //  phone is required, must start with 0 and be numbers only
+    if (phone === '') {
+      showError('#phone', 'Enter a phone number.');
+      valid = false;
+    } else if (!isValidPhone(phone)) {
+      showError('#phone', 'Phone must start with 0 and contain numbers only.');
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    if ($editRow) {
+      // EDIT MODE - update the cells of the existing row
+      $editRow.find('.c-name').text(name);
+      $editRow.find('.c-sex').text(sex);
+      $editRow.find('.c-dob').text(formatDate(dob)).attr('data-value', dob);
+      $editRow.find('.c-email').text(email);
+      $editRow.find('.c-phone').text(phone);
+    } else {
+      // ADD MODE - build a new row
+      var $row = $('<tr>');
+      $row.append('<td class="col-check"><input type="checkbox" class="row-check" aria-label="Select row"></td>');
+      $row.append($('<td class="c-id">').text(nextId++));
+      $row.append($('<td class="c-name">').text(name));
+      $row.append($('<td class="c-sex">').text(sex));
+      $row.append($('<td class="c-dob">').text(formatDate(dob)).attr('data-value', dob));
+      $row.append($('<td class="c-email">').text(email));
+      $row.append($('<td class="c-phone">').text(phone));
+      $row.append('<td><button type="button" class="btn btn-ghost btn-small edit-btn">Edit</button></td>');
+
+      $('#peopleTable tbody').append($row);
+    }
+
+    applySearch();
+    closeModal();
+  });
+
+  /* ---------- Search by name */
+  $('#search').on('input', applySearch);
+
+  function applySearch() {
+    var keyword = $.trim($('#search').val()).toLowerCase();
+
+    // show a row only if its name contains the keyword
+    $('#peopleTable tbody tr').each(function () {
+      var name = $(this).find('.c-name').text().toLowerCase();
+      $(this).toggle(name.indexOf(keyword) !== -1);
+    });
+
+    // choose which message to show
+    var total   = $('#peopleTable tbody tr').length;
+    var visible = $('#peopleTable tbody tr:visible').length;
+
+    $('#emptyState').prop('hidden', total > 0);
+    $('#noResult').prop('hidden', total === 0 || visible > 0);
+  }
+
+  /* Select all / Remove */
+
+  // only tick the rows that are visible (so search + select all works well)
+  $('#checkAll').on('change', function () {
+    $('#peopleTable tbody tr:visible .row-check').prop('checked', this.checked);
+  });
+
+  $('#removeSelected').on('click', function () {
+    $('.row-check:checked').closest('tr').remove();
+    $('#checkAll').prop('checked', false);
+    applySearch();
+  });
+
+});
+  </script>
+</body>
+</html>
