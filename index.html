@@ -193,10 +193,35 @@
       padding: 20px 28px 24px;
     }
 
+    @media (max-width: 768px) {
+      .page { margin: 24px 16px; padding: 20px; }
+    }
+
     @media (max-width: 560px) {
-      .modal-body { grid-template-columns: 1fr; }
-      .modal-foot .btn { flex: 1; }
+      .page { margin: 0; padding: 16px; border-radius: 0; box-shadow: none; min-height: 100vh; }
+
+      /* toolbar: search on its own row, buttons share the next row */
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar-actions { flex-direction: column; }
       .search { width: 100%; }
+      .toolbar-actions .btn { flex: 1; width: 100%; }
+
+      /* modal: one column, slides up from the bottom like a phone sheet */
+      .modal-backdrop { padding: 0; align-items: flex-end; }
+      .modal {
+        max-width: 100%;
+        max-height: 92vh;
+        border-radius: 18px 18px 0 0;
+      }
+      .modal-head { padding: 20px 20px 4px; }
+      .modal-body { grid-template-columns: 1fr; padding: 16px 20px 4px; gap: 14px; }
+      .modal-foot { padding: 16px 20px 20px; }
+      .modal-foot .btn { flex: 1; }
+
+      /* 16px stops iPhones from zooming in when you tap an input */
+      .field input,
+      .field select,
+      .search { font-size: 16px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
